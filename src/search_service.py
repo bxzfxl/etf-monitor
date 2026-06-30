@@ -2094,6 +2094,60 @@ class SearXNGSearchProvider(BaseSearchProvider):
         )
 
 
+class AgentSearchProvider(BaseSearchProvider):
+    """Agent 搜索引擎 — DuckDuckGo 免费搜索，无需 API Key"""
+
+    _AGENT_PROVIDER_NAME = "Agent"
+
+    def __init__(self):
+        self._api_keys: List[str] = []
+        self._name = self._AGENT_PROVIDER_NAME
+        self._key_cycle = None
+        self._key_usage: Dict[str, int] = {}
+        self._key_errors: Dict[str, int] = {}
+        self._state_lock = threading.RLock()
+        self._last_request_time = 0.0
+        self._min_interval = 2.0
+
+    @property
+    def is_available(self) -> bool:
+        return True
+
+    def _rate_limit(self):
+        elapsed = time.time() - self._last_request_time
+        if elapsed < self._min_interval:
+            time.sleep(self._min_interval - elapsed)
+        self._last_request_time = time.time()
+
+    def _do_search(self, query: str, api_key: str, max_results: int, days: int = 7) -> SearchResponse:
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            return SearchResponse(query=query, results=[], provider=self.name,
+                                  success=False, error_message="ddgs 未安装: pip install ddgs")
+        self._rate_limit()
+        try:
+            with DDGS() as ddgs:
+                raw = list(ddgs.text(query, max_results=max(10, max_results * 2)))
+        except Exception as e:
+            logger.warning(f"[{self.name}] ddgs 搜索失败: {e}")
+            raw = []
+        results: List[SearchResult] = []
+        for item in raw[:max_results]:
+            url = item.get("href", "")
+            results.append(SearchResult(
+                title=item.get("title", ""),
+                snippet=(item.get("body", "") or "")[:500],
+                url=url,
+                source=urlparse(url).netloc if url else url,
+            ))
+        if not results:
+            return SearchResponse(query=query, results=[], provider=self.name,
+                                  success=False, error_message="未找到结果")
+        logger.info(f"[{self.name}] '{query}' → {len(results)} 条")
+        return SearchResponse(query=query, results=results, provider=self.name, success=True)
+
+
 class SearchService:
     """
     搜索服务
@@ -2345,6 +2399,16 @@ class SearchService:
             
         if not self._providers:
             logger.warning("未配置任何搜索能力，新闻搜索功能将不可用")
+
+        # Agent 搜索引擎（DuckDuckGo 免费，兜底方案）
+        # 始终注册，但在有付费 provider 时作为 fallback
+        agent_provider = AgentSearchProvider()
+        if not self._providers:
+            self._providers.insert(0, agent_provider)
+            logger.info("已启用 Agent 搜索（DuckDuckGo 免费），作为默认搜索引擎")
+        else:
+            self._providers.append(agent_provider)
+            logger.info("已注册 Agent 搜索（DuckDuckGo）作为备用搜索引擎")
 
         # In-memory search result cache: {cache_key: (timestamp, SearchResponse)}
         self._cache: Dict[str, Tuple[float, 'SearchResponse']] = {}
