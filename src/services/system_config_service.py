@@ -2705,6 +2705,7 @@ class SystemConfigService:
             EmailSender,
             FeishuSender,
             GotifySender,
+            HermesSender,
             NtfySender,
             PushoverSender,
             PushplusSender,
@@ -2756,6 +2757,7 @@ class SystemConfigService:
             "discord": lambda: DiscordSender(config).send_to_discord(titled_content, timeout_seconds=timeout_seconds),
             "slack": lambda: SlackSender(config).send_to_slack(titled_content, timeout_seconds=timeout_seconds),
             "astrbot": lambda: AstrbotSender(config).send_to_astrbot(titled_content, timeout_seconds=timeout_seconds),
+            "hermes": lambda: HermesSender(config).send(titled_content, timeout_seconds=timeout_seconds),
         }
 
         ok = bool(dispatch[channel]())

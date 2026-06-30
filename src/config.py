@@ -875,6 +875,11 @@ class Config:
     telegram_bot_token: Optional[str] = None  # Bot Token（@BotFather 获取）
     telegram_chat_id: Optional[str] = None  # Chat ID
     telegram_message_thread_id: Optional[str] = None  # Topic ID (Message Thread ID) for groups
+
+    # Hermes 网关配置（通知统一走 Hermes 转发，替代独立 Telegram/微信配置）
+    hermes_webhook_url: Optional[str] = None  # Hermes WebUI /webhook 端点
+    hermes_api_token: Optional[str] = None  # Hermes API Token
+    hermes_notify_channel: str = "telegram"  # 默认推送通道
     
     # 邮件配置（只需邮箱和授权码，SMTP 自动识别）
     email_sender: Optional[str] = None  # 发件人邮箱
@@ -1787,6 +1792,9 @@ class Config:
             telegram_bot_token=os.getenv('TELEGRAM_BOT_TOKEN'),
             telegram_chat_id=os.getenv('TELEGRAM_CHAT_ID'),
             telegram_message_thread_id=os.getenv('TELEGRAM_MESSAGE_THREAD_ID'),
+            hermes_webhook_url=os.getenv('HERMES_WEBHOOK_URL'),
+            hermes_api_token=os.getenv('HERMES_API_TOKEN'),
+            hermes_notify_channel=os.getenv('HERMES_NOTIFY_CHANNEL', 'telegram'),
             email_sender=os.getenv('EMAIL_SENDER'),
             email_sender_name=os.getenv('EMAIL_SENDER_NAME', 'daily_stock_analysis股票分析助手'),
             email_password=os.getenv('EMAIL_PASSWORD'),

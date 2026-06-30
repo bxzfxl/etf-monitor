@@ -63,6 +63,7 @@ from src.notification_sender import (
     EmailSender,
     FeishuSender,
     GotifySender,
+    HermesSender,
     NtfySender,
     PushoverSender,
     PushplusSender,
