@@ -2400,15 +2400,13 @@ class SearchService:
         if not self._providers:
             logger.warning("未配置任何搜索能力，新闻搜索功能将不可用")
 
-        # Agent 搜索引擎（DuckDuckGo 免费，兜底方案）
-        # 始终注册，但在有付费 provider 时作为 fallback
+        # Agent 搜索引擎（DuckDuckGo 免费）— 始终作为首选
         agent_provider = AgentSearchProvider()
-        if not self._providers:
-            self._providers.insert(0, agent_provider)
+        self._providers.insert(0, agent_provider)
+        if len(self._providers) == 1:
             logger.info("已启用 Agent 搜索（DuckDuckGo 免费），作为默认搜索引擎")
         else:
-            self._providers.append(agent_provider)
-            logger.info("已注册 Agent 搜索（DuckDuckGo）作为备用搜索引擎")
+            logger.info(f"Agent 搜索作为主力引擎（另有 {len(self._providers)-1} 个备用）")
 
         # In-memory search result cache: {cache_key: (timestamp, SearchResponse)}
         self._cache: Dict[str, Tuple[float, 'SearchResponse']] = {}
